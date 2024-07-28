@@ -74,7 +74,7 @@ class ChatInputListener implements Listener {
 
                 if (handler.test(msg)) {
                     iterator.remove();
-                    plugin.getServer().getScheduler().runTask(plugin, () -> handler.onChat(p, msg));
+                    p.getScheduler().run(plugin, (scheduledTask) -> handler.onChat(p, msg), null);
 
                     e.setCancelled(true);
                     return;

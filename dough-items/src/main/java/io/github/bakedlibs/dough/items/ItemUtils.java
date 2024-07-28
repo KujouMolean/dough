@@ -179,8 +179,8 @@ public final class ItemUtils {
         if (item.getType() != Material.AIR && item.getAmount() > 0) {
             int remove = damage;
 
-            if (!ignoreEnchantments && item.getEnchantments().containsKey(Enchantment.DURABILITY)) {
-                int level = item.getEnchantmentLevel(Enchantment.DURABILITY);
+            if (!ignoreEnchantments && item.getEnchantments().containsKey(Enchantment.UNBREAKING)) {
+                int level = item.getEnchantmentLevel(Enchantment.UNBREAKING);
 
                 for (int i = 0; i < damage; i++) {
                     if (Math.random() * 100 <= (60 + Math.floorDiv(40, (level + 1)))) {

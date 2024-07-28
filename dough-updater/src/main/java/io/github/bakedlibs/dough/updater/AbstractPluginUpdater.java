@@ -77,7 +77,7 @@ abstract class AbstractPluginUpdater<V extends Version> implements PluginUpdater
     }
 
     protected void scheduleAsyncUpdateTask(@Nonnull UpdaterTask<V> task) {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, task);
+        Bukkit.getAsyncScheduler().runNow(plugin, scheduledTask -> task.run());
     }
 
     @ParametersAreNonnullByDefault

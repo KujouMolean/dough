@@ -22,6 +22,7 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import io.github.bakedlibs.dough.common.DoughLogger;
@@ -96,7 +97,7 @@ public class UUIDLookup {
         CompletableFuture<UUID> future = new CompletableFuture<>();
         DoughLogger logger = new DoughLogger(plugin.getServer(), "skins");
 
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+       Bukkit.getAsyncScheduler().runNow(plugin, (scheduledTask) -> {
             String targetUrl = "https://api.mojang.com/users/profiles/minecraft/" + name;
 
             try (InputStreamReader reader = new InputStreamReader(new URL(targetUrl).openStream(), StandardCharsets.UTF_8)) {

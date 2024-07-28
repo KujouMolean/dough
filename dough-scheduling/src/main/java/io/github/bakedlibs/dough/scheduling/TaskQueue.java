@@ -1,11 +1,15 @@
 package io.github.bakedlibs.dough.scheduling;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.IntConsumer;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import it.unimi.dsi.fastutil.Pair;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 
 /**
@@ -49,17 +53,13 @@ public class TaskQueue {
             run(plugin, node.getNextNode(), index + 1);
         };
 
-        if (node.isAsynchronous()) {
-            if (node.getDelay() > 0) {
-                Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, runnable, node.getDelay());
-            } else {
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, runnable);
-            }
+        if (node.isAsynchronous().left()) {
+            Bukkit.getAsyncScheduler().runDelayed(plugin, scheduledTask -> runnable.run(), Math.max(1, node.getDelay() * 50L), TimeUnit.MILLISECONDS);
         } else {
-            if (node.getDelay() > 0) {
-                Bukkit.getScheduler().runTaskLater(plugin, runnable, node.getDelay());
+            if (node.isAsynchronous().right().left() == null) {
+                Bukkit.getRegionScheduler().runDelayed(plugin, node.isAsynchronous().right().right(), scheduledTask -> runnable.run(), Math.max(1, node.getDelay()));
             } else {
-                Bukkit.getScheduler().runTask(plugin, runnable);
+                node.isAsynchronous().right().left().getScheduler().runDelayed(plugin, scheduledTask -> runnable.run(), null, Math.max(1, node.getDelay()));
             }
         }
     }
@@ -73,8 +73,8 @@ public class TaskQueue {
      * 
      * @return The current instance of {@link TaskQueue}
      */
-    public @Nonnull TaskQueue thenRun(@Nonnull IntConsumer consumer) {
-        return append(new TaskNode(consumer, false));
+    public @Nonnull TaskQueue thenRun(@Nonnull IntConsumer consumer,Pair<Entity,Location> pair) {
+        return append(new TaskNode(consumer, Pair.of(false, pair)));
     }
 
     /**
@@ -85,8 +85,8 @@ public class TaskQueue {
      * 
      * @return The current instance of {@link TaskQueue}
      */
-    public @Nonnull TaskQueue thenRun(@Nonnull Runnable runnable) {
-        return thenRun(i -> runnable.run());
+    public @Nonnull TaskQueue thenRun(@Nonnull Runnable runnable,Pair<Entity,Location> pair) {
+        return thenRun(i -> runnable.run(),pair);
     }
 
     /**
@@ -99,7 +99,7 @@ public class TaskQueue {
      * @return The current instance of {@link TaskQueue}
      */
     public @Nonnull TaskQueue thenRunAsynchronously(@Nonnull IntConsumer consumer) {
-        return append(new TaskNode(consumer, true));
+        return append(new TaskNode(consumer, Pair.of(true, null)));
     }
 
     /**
@@ -125,12 +125,12 @@ public class TaskQueue {
      * 
      * @return The current instance of {@link TaskQueue}
      */
-    public @Nonnull TaskQueue thenRun(int ticks, @Nonnull IntConsumer consumer) {
+    public @Nonnull TaskQueue thenRun(int ticks, @Nonnull IntConsumer consumer, Pair<Entity, Location> pair) {
         if (ticks < 1) {
             throw new IllegalArgumentException("thenAfter() must be given a time that is greater than zero!");
         }
 
-        return append(new TaskNode(consumer, ticks, false));
+        return append(new TaskNode(consumer, ticks, Pair.of(false, pair)));
     }
 
     /**
@@ -143,8 +143,8 @@ public class TaskQueue {
      * 
      * @return The current instance of {@link TaskQueue}
      */
-    public @Nonnull TaskQueue thenRun(int ticks, @Nonnull Runnable runnable) {
-        return thenRun(ticks, i -> runnable.run());
+    public @Nonnull TaskQueue thenRun(int ticks, @Nonnull Runnable runnable,Pair<Entity, Location> pair) {
+        return thenRun(ticks, i -> runnable.run(), pair);
     }
 
     /**
@@ -163,7 +163,7 @@ public class TaskQueue {
             throw new IllegalArgumentException("thenAfter() must be given a time that is greater than zero!");
         }
 
-        return append(new TaskNode(consumer, ticks, true));
+        return append(new TaskNode(consumer, ticks, Pair.of(true, null)));
     }
 
     /**
@@ -192,9 +192,9 @@ public class TaskQueue {
      * 
      * @return The current instance of {@link TaskQueue}
      */
-    public @Nonnull TaskQueue thenRepeat(int iterations, @Nonnull IntConsumer consumer) {
+    public @Nonnull TaskQueue thenRepeat(int iterations, @Nonnull IntConsumer consumer,Pair<Entity,Location> pair) {
         for (int i = 0; i < iterations; i++) {
-            append(new TaskNode(consumer, false));
+            append(new TaskNode(consumer, Pair.of(false, pair)));
         }
 
         return this;
@@ -211,8 +211,8 @@ public class TaskQueue {
      * 
      * @return The current instance of {@link TaskQueue}
      */
-    public @Nonnull TaskQueue thenRepeat(int iterations, @Nonnull Runnable runnable) {
-        return thenRepeat(iterations, i -> runnable.run());
+    public @Nonnull TaskQueue thenRepeat(int iterations, @Nonnull Runnable runnable,Pair<Entity,Location> pair) {
+        return thenRepeat(iterations, i -> runnable.run(), pair);
     }
 
     /**
@@ -229,7 +229,7 @@ public class TaskQueue {
      */
     public @Nonnull TaskQueue thenRepeatAsynchronously(int iterations, @Nonnull IntConsumer consumer) {
         for (int i = 0; i < iterations; i++) {
-            append(new TaskNode(consumer, true));
+            append(new TaskNode(consumer, Pair.of(true, null)));
         }
 
         return this;
@@ -264,13 +264,13 @@ public class TaskQueue {
      * 
      * @return The current instance of {@link TaskQueue}
      */
-    public @Nonnull TaskQueue thenRepeatEvery(int ticks, int iterations, @Nonnull IntConsumer consumer) {
+    public @Nonnull TaskQueue thenRepeatEvery(int ticks, int iterations, @Nonnull IntConsumer consumer,Pair<Entity,Location> pair) {
         if (ticks < 1) {
             throw new IllegalArgumentException("thenRepeatEvery() must be given a time that is greater than zero!");
         }
 
         for (int i = 0; i < iterations; i++) {
-            append(new TaskNode(consumer, ticks, false));
+            append(new TaskNode(consumer, ticks, Pair.of(false,pair)));
         }
 
         return this;
@@ -289,8 +289,8 @@ public class TaskQueue {
      * 
      * @return The current instance of {@link TaskQueue}
      */
-    public @Nonnull TaskQueue thenRepeatEvery(int ticks, int iterations, @Nonnull Runnable runnable) {
-        return thenRepeatEvery(ticks, iterations, i -> runnable.run());
+    public @Nonnull TaskQueue thenRepeatEvery(int ticks, int iterations, @Nonnull Runnable runnable,Pair<Entity,Location> pair) {
+        return thenRepeatEvery(ticks, iterations, i -> runnable.run(), pair);
     }
 
     /**
@@ -313,7 +313,7 @@ public class TaskQueue {
         }
 
         for (int i = 0; i < iterations; i++) {
-            append(new TaskNode(consumer, ticks, true));
+            append(new TaskNode(consumer, ticks, Pair.of(true, null)));
         }
 
         return this;
@@ -344,8 +344,8 @@ public class TaskQueue {
      * @param consumer
      *            The callback to run
      */
-    public void thenLoop(@Nonnull IntConsumer consumer) {
-        TaskNode node = new TaskNode(consumer, false);
+    public void thenLoop(@Nonnull IntConsumer consumer, Pair<Entity, Location> pair) {
+        TaskNode node = new TaskNode(consumer, Pair.of(false, pair));
         node.setNextNode(node);
         append(node);
     }
@@ -358,8 +358,8 @@ public class TaskQueue {
      * @param runnable
      *            The callback to run
      */
-    public void thenLoop(@Nonnull Runnable runnable) {
-        thenLoop(i -> runnable.run());
+    public void thenLoop(@Nonnull Runnable runnable,Pair<Entity, Location> pair) {
+        thenLoop(i -> runnable.run(), pair);
     }
 
     /**
@@ -371,7 +371,7 @@ public class TaskQueue {
      *            The callback to run
      */
     public void thenLoopAsynchronously(@Nonnull IntConsumer consumer) {
-        TaskNode node = new TaskNode(consumer, true);
+        TaskNode node = new TaskNode(consumer, Pair.of(true, null));
         node.setNextNode(node);
         append(node);
     }
@@ -398,12 +398,12 @@ public class TaskQueue {
      * @param consumer
      *            The callback to run
      */
-    public void thenLoopEvery(int ticks, @Nonnull IntConsumer consumer) {
+    public void thenLoopEvery(int ticks, @Nonnull IntConsumer consumer, Pair<Entity, Location> pair) {
         if (ticks < 1) {
             throw new IllegalArgumentException("thenLoopEvery() must be given a time that is greater than zero!");
         }
 
-        TaskNode node = new TaskNode(consumer, ticks, false);
+        TaskNode node = new TaskNode(consumer, ticks, Pair.of(false,pair));
         node.setNextNode(node);
         append(node);
     }
@@ -418,8 +418,8 @@ public class TaskQueue {
      * @param runnable
      *            The callback to run
      */
-    public void thenLoopEvery(int ticks, @Nonnull Runnable runnable) {
-        thenLoopEvery(ticks, i -> runnable.run());
+    public void thenLoopEvery(int ticks, @Nonnull Runnable runnable,Pair<Entity, Location> pair) {
+        thenLoopEvery(ticks, i -> runnable.run(), pair);
     }
 
     /**
@@ -437,7 +437,7 @@ public class TaskQueue {
             throw new IllegalArgumentException("thenLoopEveryAsynchronously() must be given a time that is greater than zero!");
         }
 
-        TaskNode node = new TaskNode(consumer, ticks, true);
+        TaskNode node = new TaskNode(consumer, ticks, Pair.of(true, null));
         node.setNextNode(node);
         append(node);
     }
@@ -465,8 +465,8 @@ public class TaskQueue {
      * 
      * @return The current instance of {@link TaskQueue}
      */
-    public @Nonnull TaskQueue thenWait(int ticks) {
-        TaskNode node = new TaskNode(i -> {}, false);
+    public @Nonnull TaskQueue thenWait(int ticks,Pair<Entity,Location> pair) {
+        TaskNode node = new TaskNode(i -> {}, Pair.of(false, pair));
         node.setDelay(ticks);
         return append(node);
     }

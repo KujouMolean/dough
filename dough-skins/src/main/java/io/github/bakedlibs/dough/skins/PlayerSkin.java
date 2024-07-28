@@ -15,6 +15,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import com.google.gson.JsonArray;
@@ -103,7 +104,7 @@ public class PlayerSkin {
         CompletableFuture<PlayerSkin> future = new CompletableFuture<>();
         DoughLogger logger = new DoughLogger(plugin.getServer(), "skins");
 
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+        Bukkit.getAsyncScheduler().runNow(plugin, (scheduledTask) -> {
             String targetUrl = "https://sessionserver.mojang.com/session/minecraft/profile/" + uuid.toString().replace("-", "") + "?unsigned=false";
 
             try (InputStreamReader reader = new InputStreamReader(new URL(targetUrl).openStream(), StandardCharsets.UTF_8)) {
