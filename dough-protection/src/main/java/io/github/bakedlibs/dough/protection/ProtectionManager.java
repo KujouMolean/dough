@@ -185,6 +185,7 @@ public final class ProtectionManager {
             } catch (Exception | LinkageError x) {
                 logger.log(Level.SEVERE, x, () -> "An Error occured while querying the Protection Module: \"" + module.getName() + " v" + module.getVersion() + "\"");
                 // Fallback will just be "allow".
+                x.printStackTrace();
                 return true;
             }
         }

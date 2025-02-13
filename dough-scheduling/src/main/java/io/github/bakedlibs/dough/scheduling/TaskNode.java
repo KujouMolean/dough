@@ -5,25 +5,26 @@ import java.util.function.IntConsumer;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.molean.folia.adapter.SchedulerContext;
 import org.apache.commons.lang.Validate;
 
 // TODO: Convert to Java 16 record
 class TaskNode {
 
     private final IntConsumer runnable;
-    private final boolean asynchronous;
+    private final SchedulerContext context;
     private int delay = 0;
     private TaskNode nextNode;
 
-    protected TaskNode(@Nonnull IntConsumer consumer, boolean async) {
+    protected TaskNode(@Nonnull IntConsumer consumer, SchedulerContext context) {
         this.runnable = consumer;
-        this.asynchronous = async;
+        this.context = context;
     }
 
-    protected TaskNode(@Nonnull IntConsumer consumer, int delay, boolean async) {
+    protected TaskNode(@Nonnull IntConsumer consumer, int delay, SchedulerContext context) {
         this.runnable = consumer;
         this.delay = delay;
-        this.asynchronous = async;
+        this.context = context;
     }
 
     protected boolean hasNextNode() {
@@ -42,8 +43,8 @@ class TaskNode {
         runnable.accept(index);
     }
 
-    public boolean isAsynchronous() {
-        return asynchronous;
+    public SchedulerContext getContext() {
+        return context;
     }
 
     public int getDelay() {
