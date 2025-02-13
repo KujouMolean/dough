@@ -5,22 +5,25 @@ import java.util.function.IntConsumer;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import it.unimi.dsi.fastutil.Pair;
 import org.apache.commons.lang.Validate;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 
 // TODO: Convert to Java 16 record
 class TaskNode {
 
     private final IntConsumer runnable;
-    private final boolean asynchronous;
+    private final Pair<Boolean, Pair<Entity, Location>> asynchronous;
     private int delay = 0;
     private TaskNode nextNode;
 
-    protected TaskNode(@Nonnull IntConsumer consumer, boolean async) {
+    protected TaskNode(@Nonnull IntConsumer consumer, Pair<Boolean, Pair<Entity, Location>> async) {
         this.runnable = consumer;
         this.asynchronous = async;
     }
 
-    protected TaskNode(@Nonnull IntConsumer consumer, int delay, boolean async) {
+    protected TaskNode(@Nonnull IntConsumer consumer, int delay, Pair<Boolean, Pair<Entity, Location>> async) {
         this.runnable = consumer;
         this.delay = delay;
         this.asynchronous = async;
@@ -42,7 +45,7 @@ class TaskNode {
         runnable.accept(index);
     }
 
-    public boolean isAsynchronous() {
+    public Pair<Boolean, Pair<Entity, Location>> isAsynchronous() {
         return asynchronous;
     }
 
